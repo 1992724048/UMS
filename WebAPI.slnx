@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="UnitTest/UnitTest.csproj" />
+  <Project Path="WebAPI.csproj" />
+</Solution>
