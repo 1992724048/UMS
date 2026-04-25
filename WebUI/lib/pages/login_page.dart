@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:web/web.dart' as web;
 
 import '../utils/http.dart';
+import '../widget/AsyncButton.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -212,7 +213,11 @@ class _LoginInputState extends State<_LoginInput> {
               const SizedBox(height: 32),
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(labelText: '用户名', prefixIcon: Icon(Icons.person)),
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: '用户名',
+                  prefixIcon: Icon(Icons.person),
+                ),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return '请输入用户名';
                   if (value!.length < 3) return '用户名至少 3 个字符';
@@ -224,6 +229,7 @@ class _LoginInputState extends State<_LoginInput> {
                 controller: _passwordController,
                 obscureText: _obscurePassword,
                 decoration: InputDecoration(
+                  border: OutlineInputBorder(),
                   labelText: '密码',
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: Padding(
@@ -246,7 +252,11 @@ class _LoginInputState extends State<_LoginInput> {
                   Expanded(
                     child: TextFormField(
                       controller: _captchaController,
-                      decoration: InputDecoration(labelText: '验证码', prefixIcon: const Icon(Icons.security)),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: '验证码',
+                        prefixIcon: const Icon(Icons.security),
+                      ),
                       maxLength: 4,
                       buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
                       validator: (value) {
@@ -264,7 +274,13 @@ class _LoginInputState extends State<_LoginInput> {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _isLoading ? null : _submit,
+                child: _isLoading
+                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    : Text('登 录'),
+              ),
               if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16),
@@ -274,12 +290,6 @@ class _LoginInputState extends State<_LoginInput> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-              FilledButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text('登 录'),
-              ),
             ],
           ),
         ),

@@ -12,6 +12,7 @@ class MainPageRoutes {
   static const String keys = 'keys';
   static const String datas = 'datas';
   static const String files = 'files';
+  static const String webs = 'webs';
   static const String customerService = 'customer_service';
   static const String aiAgent = 'ai_agent';
   static const String audit = 'audit';
@@ -84,6 +85,14 @@ class MainPage extends StatefulWidget {
       icon: Icons.file_present_rounded,
       tooltip: '文件',
       route: MainPageRoutes.files,
+      pageWidget: Column(
+        children: [Text('4', style: TextStyle(color: Colors.white))],
+      ),
+    ),
+    const MainPageNavItem(
+      icon: Icons.web,
+      tooltip: '网站',
+      route: MainPageRoutes.webs,
       pageWidget: Column(
         children: [Text('4', style: TextStyle(color: Colors.white))],
       ),
@@ -162,9 +171,12 @@ class _MainPageState extends State<MainPage> with PageLoadTimer {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
         child: _BodyPage(),
       ),
-      floatingActionButton: Text(
-        '1.0.0 (Dev)\n${MainPage.duration.inMilliseconds} ms',
-        style: TextStyle(color: Colors.white24),
+      floatingActionButton: Padding(
+        padding: EdgeInsetsGeometry.only(bottom: 35),
+        child: Text(
+          '1.0.0 (Dev)\n${MainPage.duration.inMilliseconds} ms',
+          style: TextStyle(color: Theme.of(context).textTheme.titleSmall?.color?.withAlpha(50)),
+        ),
       ),
     );
   }

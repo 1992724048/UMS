@@ -24,7 +24,13 @@ class AsyncButton extends AsyncActionWidget<AsyncButton> {
   });
 
   @override
-  AsyncButton copyWith({Future<bool> Function()? action_, ErrorCallback? errorHandler, Duration? timeout, ValueNotifier<double>? progressNotifier, ValueNotifier<bool>? readOnlyNotifier}) {
+  AsyncButton copyWith({
+    Future<bool> Function()? action_,
+    ErrorCallback? errorHandler,
+    Duration? timeout,
+    ValueNotifier<double>? progressNotifier,
+    ValueNotifier<bool>? readOnlyNotifier,
+  }) {
     return AsyncButton(
       key: key,
       action_: action_ ?? this.action_,
@@ -44,12 +50,32 @@ class AsyncButton extends AsyncActionWidget<AsyncButton> {
 }
 
 class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
+  OutlinedBorder _resolveShape(BuildContext context) {
+    final theme = Theme.of(context);
+    OutlinedBorder? s;
+
+    switch (widget.type) {
+      case AsyncButtonType.elevated:
+        s = widget.style?.shape?.resolve({});
+        s ??= theme.elevatedButtonTheme.style?.shape?.resolve({});
+        return s ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+      case AsyncButtonType.text:
+        s = widget.style?.shape?.resolve({});
+        s ??= theme.textButtonTheme.style?.shape?.resolve({});
+        return s ?? RoundedRectangleBorder();
+      case AsyncButtonType.outlined:
+        s = widget.style?.shape?.resolve({});
+        s ??= theme.outlinedButtonTheme.style?.shape?.resolve({});
+        return s ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+    }
+  }
+
   @override
   Widget buildContent(BuildContext context, bool busy, double? progress) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-
     final hasProgress = progress != null && progress != -1;
+    final shape = _resolveShape(context);
 
     Widget buildButton(Widget child) {
       switch (widget.type) {
@@ -69,8 +95,8 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
           children: [
             if (busy)
               Positioned.fill(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                child: ClipPath.shape(
+                  shape: shape,
                   child: hasProgress
                       ? Align(
                           alignment: Alignment.centerLeft,
@@ -82,7 +108,13 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
                       : LinearProgressIndicator(backgroundColor: Colors.transparent),
                 ),
               ),
-            buildButton(AnimatedOpacity(duration: const Duration(milliseconds: 200), opacity: busy ? 0.5 : 1.0, child: widget.child)),
+            buildButton(
+              AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: busy ? 0.5 : 1.0,
+                child: widget.child,
+              ),
+            ),
           ],
         );
       },

@@ -1,4 +1,4 @@
-// 2026-04-25 16:58:21
+// 2026-04-25 19:17:58
 
 namespace WebAPI {
     #region
@@ -24,7 +24,6 @@ namespace WebAPI {
 
             WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-            // 配置HTTP压缩
             builder.Services.AddRequestDecompression();
             builder.Services.AddResponseCompression(options => {
                 options.EnableForHttps = true;
@@ -38,7 +37,6 @@ namespace WebAPI {
                 options.Level = CompressionLevel.Optimal;
             });
 
-            // 添加控制器和OpenApi文档
             builder.Services.AddControllers();
             builder.Services.AddOpenApi(options => {
                 options.AddOperationTransformer<OpenApiXmlCommentsTransformer>();
@@ -53,17 +51,16 @@ namespace WebAPI {
             WebApplication app = builder.Build();
             app.UseRequestDecompression();
             app.UseResponseCompression();
-            
+
             var open_api = new Field<bool>("server::scalar_ui", true);
             if (open_api) {
                 app.MapOpenApi();
                 app.MapScalarApiReference(options => options.WithTitle("UMS API"));
             }
 
-            // 添加静态文件目录
             string web_root = Path.Combine(AppContext.BaseDirectory, "web");
             if (!Directory.Exists(web_root)) {
-                string alt = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "WebUI", "build", "web"));
+                string alt = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "WebUI", "build", "web"));
                 if (Directory.Exists(alt)) {
                     web_root = alt;
                 }
