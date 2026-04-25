@@ -212,18 +212,14 @@ class _LoginInputState extends State<_LoginInput> {
               const SizedBox(height: 32),
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: '用户名',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: '用户名', prefixIcon: Icon(Icons.person)),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return '请输入用户名';
                   if (value!.length < 3) return '用户名至少 3 个字符';
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscurePassword,
@@ -237,7 +233,6 @@ class _LoginInputState extends State<_LoginInput> {
                       icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                     ),
                   ),
-                  border: const OutlineInputBorder(),
                 ),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return '请输入密码';
@@ -245,44 +240,29 @@ class _LoginInputState extends State<_LoginInput> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              if (_captchaSvg.isNotEmpty)
-                GestureDetector(
-                  onTap: _refreshCaptcha,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Center(
-                      child: SvgPicture.string(
-                        _captchaSvg,
-                        width: 130,
-                        height: 48,
-                        placeholderBuilder: (_) =>
-                            const SizedBox(width: 130, height: 48, child: Center(child: Text('加载中'))),
-                      ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _captchaController,
+                      decoration: InputDecoration(labelText: '验证码', prefixIcon: const Icon(Icons.security)),
+                      maxLength: 4,
+                      buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                      validator: (value) {
+                        if (value?.isEmpty ?? true) return '请输入验证码';
+                        return null;
+                      },
+                      onFieldSubmitted: (_) => _submit(),
                     ),
                   ),
-                ),
-              if (_captchaSvg.isNotEmpty) const SizedBox(height: 8),
-              TextFormField(
-                controller: _captchaController,
-                decoration: InputDecoration(
-                  labelText: '验证码',
-                  prefixIcon: const Icon(Icons.security),
-                  suffixIcon: _captchaSvg.isNotEmpty
-                      ? IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _refreshCaptcha)
-                      : null,
-                  border: const OutlineInputBorder(),
-                ),
-                maxLength: 4,
-                validator: (value) {
-                  if (value?.isEmpty ?? true) return '请输入验证码';
-                  return null;
-                },
-                onFieldSubmitted: (_) => _submit(),
+                  const SizedBox(width: 8),
+                  if (_captchaSvg.isNotEmpty)
+                    GestureDetector(
+                      onTap: _refreshCaptcha,
+                      child: Center(child: SvgPicture.string(_captchaSvg, width: 130, height: 48)),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
               if (_errorMessage != null)
