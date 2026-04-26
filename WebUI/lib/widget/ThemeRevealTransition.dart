@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
@@ -27,7 +28,7 @@ class ThemeRevealTransition extends StatefulWidget {
     required this.onToggle,
     this.seedColor = const Color(0xFF448AFF),
     this.onColorChanged,
-    this.duration = const Duration(milliseconds: 300),
+    this.duration = const Duration(milliseconds: 500),
     this.controller,
     this.showButton = true,
   });
@@ -68,7 +69,7 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
   void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn);
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     widget.controller?._trigger = _handleTap;
   }
 
@@ -88,7 +89,7 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
 
     final renderObject = _screenshotKey.currentContext?.findRenderObject();
     if (renderObject is RenderRepaintBoundary) {
-      final dpr = math.min(2.0, View.of(context).devicePixelRatio);
+      final dpr = View.of(context).devicePixelRatio;
       _capturedImage = await renderObject.toImage(pixelRatio: dpr);
     }
 
@@ -96,7 +97,7 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
 
     widget.onToggle();
 
-    final size = MediaQuery.sizeOf(context);
+    var size = MediaQuery.sizeOf(context);
     final corners = [Offset.zero, Offset(size.width, 0), Offset(0, size.height), Offset(size.width, size.height)];
     _maxRadius = corners.map((c) => (c - _revealCenter).distance).reduce(math.max);
 
@@ -166,7 +167,7 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
 
   Widget _buildToggle(ThemeData theme) {
     return GestureDetector(
-      onTapUp: (details) => _handleTap(details.globalPosition),
+      onTapDown: (details) => _handleTap(details.globalPosition),
       child: Container(
         width: 58,
         height: 30,
@@ -231,16 +232,10 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
         RepaintBoundary(key: _screenshotKey, child: widget.child),
         if (_showReveal && _capturedImage != null)
           IgnorePointer(
-            child: AnimatedBuilder(
+            child: _RevealClip(
               animation: _animation,
-              builder: (context, child) => ClipPath(
-                clipper: _InverseCircleClipper(
-                  center: _revealCenter,
-                  progress: _animation.value,
-                  maxRadius: _maxRadius,
-                ),
-                child: child,
-              ),
+              center: _revealCenter,
+              maxRadius: _maxRadius,
               child: SizedBox.expand(child: CustomPaint(painter: _ImagePainter(_capturedImage!))),
             ),
           ),
@@ -313,12 +308,35 @@ class _ImagePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawImageRect(
       image,
-      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-      Offset.zero & size,
+      Offset.zero & Size(image.width.toDouble(), image.height.toDouble()),
+      Offset.zero & Size(size.width + 0, size.height),
       Paint(),
     );
   }
 
   @override
   bool shouldRepaint(_ImagePainter old) => old.image != image;
+}
+
+class _RevealClip extends AnimatedWidget {
+  final Widget child;
+  final Offset center;
+  final double maxRadius;
+
+  const _RevealClip({
+    required Animation<double> animation,
+    required this.child,
+    required this.center,
+    required this.maxRadius,
+  }) : super(listenable: animation);
+
+  Animation<double> get _progress => listenable as Animation<double>;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipPath(
+      clipper: _InverseCircleClipper(center: center, progress: _progress.value, maxRadius: maxRadius),
+      child: child,
+    );
+  }
 }

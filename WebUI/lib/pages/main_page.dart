@@ -4,6 +4,7 @@ import 'package:md_icons/md_icons.dart';
 import '../mixin/page_load_timer.dart';
 import '../utils/http.dart';
 import 'main_home_page.dart';
+import 'main_users_page.dart';
 
 class MainPageRoutes {
   static const String home = 'home';
@@ -61,9 +62,7 @@ class MainPage extends StatefulWidget {
       icon: Icons.supervised_user_circle,
       tooltip: '用户',
       route: MainPageRoutes.users,
-      pageWidget: Column(
-        children: [Text('3', style: TextStyle(color: Colors.white))],
-      ),
+      pageWidget: MainUsersPage(),
     ),
     const MainPageNavItem(
       icon: Icons.key,
@@ -164,6 +163,7 @@ class _MainPageState extends State<MainPage> with PageLoadTimer {
       appBar: AppBar(
         toolbarHeight: 45,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        surfaceTintColor: Colors.transparent,
         title: _AppTopBar(),
       ),
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -234,53 +234,47 @@ class _BodyPage extends StatefulWidget {
 }
 
 class _BodyPageState extends State<_BodyPage> {
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  String _currentRoute = MainPageRoutes.home;
+  late final ScrollController _scrollController;
+  int _currentIndex = 0;
 
-  void _navigateTo(String routeName) {
-    if (_currentRoute == routeName) return;
-    _navigatorKey.currentState?.pushReplacementNamed(routeName, result: null);
-    setState(() {
-      _currentRoute = routeName;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
   }
 
-  Widget _buildPageForRoute(String routeName) {
-    final allItems = [...MainPage.navTopItems, ...MainPage.navBottomItems];
-    final item = allItems.firstWhere((item) => item.route == routeName, orElse: () => MainPage.navTopItems.first);
-    return item.pageWidget;
-  }
-
-  Route<dynamic> _onGenerateRoute(RouteSettings settings) {
-    return MaterialPageRoute(
-      builder: (context) => _buildPageForRoute(settings.name ?? MainPageRoutes.home),
-      settings: settings,
-    );
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final allItems = [...MainPage.navTopItems, ...MainPage.navBottomItems];
+    final currentRoute = allItems[_currentIndex].route;
+
     return Container(
       color: Theme.of(context).colorScheme.surfaceContainer,
       child: Row(
         children: [
-          _SideBar(currentRoute: _currentRoute, onRouteSelected: _navigateTo),
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
-              child: Container(
-                color: Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: EdgeInsetsGeometry.all(5),
-                  child: Navigator(
-                    key: _navigatorKey,
-                    initialRoute: MainPageRoutes.home,
-                    onGenerateRoute: _onGenerateRoute,
-                  ),
-                ),
-              ),
-            ),
+          _SideBar(
+            currentRoute: currentRoute,
+            onRouteSelected: (route) {
+              final newIndex = allItems.indexWhere((item) => item.route == route);
+              if (newIndex != -1) {
+                setState(() {
+                  _currentIndex = newIndex;
+                  _scrollController.animateTo(
+                    _currentIndex * MediaQuery.of(context).size.height,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOutCubic,
+                  );
+                });
+              }
+            },
           ),
+          _PageBody(scrollController: _scrollController, allItems: allItems),
         ],
       ),
     );
@@ -337,6 +331,44 @@ class _SideBarState extends State<_SideBar> {
       color: isSelected ? Theme.of(context).colorScheme.primary : null,
       style: IconButton.styleFrom(
         backgroundColor: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+      ),
+    );
+  }
+}
+
+class _PageBody extends StatefulWidget {
+  final ScrollController scrollController;
+  final List<MainPageNavItem> allItems;
+
+  const _PageBody({required this.scrollController, required this.allItems});
+
+  @override
+  State<StatefulWidget> createState() => _PageBodyState();
+}
+
+class _PageBodyState extends State<_PageBody> {
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+        child: Container(
+          color: Theme.of(context).colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.all(5),
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+              child: ListView(
+                controller: widget.scrollController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: widget.allItems.asMap().entries.map((entry) {
+                  final item = entry.value;
+                  return SizedBox(height: MediaQuery.of(context).size.height, child: item.pageWidget);
+                }).toList(),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

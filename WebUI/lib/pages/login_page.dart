@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:web/web.dart' as web;
 
 import '../utils/http.dart';
-import '../widget/AsyncButton.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -283,7 +282,7 @@ class _LoginInputState extends State<_LoginInput> {
               ),
               if (_errorMessage != null)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.only(top: 16),
                   child: Text(
                     _errorMessage!,
                     style: TextStyle(color: Theme.of(context).colorScheme.error),
