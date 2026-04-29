@@ -36,7 +36,7 @@ class HttpClient {
 
     return completer.future;
   }
-  
+
   static Future<JSAny?> _gzip(String data) async {
     final blob = web.Blob([data.toJS].toJS);
     final cs = web.CompressionStream('gzip');

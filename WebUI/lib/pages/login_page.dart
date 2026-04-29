@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:web/web.dart' as web;
+import 'package:webui/controllers/CaptchaController.dart';
+import 'package:webui/controllers/UserController.dart';
 
 import '../utils/http.dart';
+import '../controllers/SystemController.dart';
+import '../widget/AsyncButton.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -54,7 +58,11 @@ class _LoginPageState extends State<LoginPage> {
       body: Row(
         crossAxisAlignment: .stretch,
         children: [
-          Expanded(child: Container(color: Theme.of(context).colorScheme.onSecondaryFixed)),
+          Expanded(
+            child: Container(
+              color: Theme.of(context).colorScheme.onSecondaryFixed,
+            ),
+          ),
           _LoginInput(),
         ],
       ),
@@ -88,29 +96,25 @@ class _LoginInputState extends State<_LoginInput> {
   }
 
   Future<void> _autoCheck() async {
-    try {
-      final req = await HttpClient.get('/api/System/admin_check');
+    if (await UserController.adminCheck()) {
       if (!mounted) return;
-      if (req.status == 200) {
-        context.go('/main');
-        return;
-      }
-    } catch (_) {}
+      context.go('/main');
+      return;
+    }
     if (mounted) setState(() => _isChecking = false);
   }
 
   Future<void> _loadCaptcha() async {
-    try {
-      final req = await HttpClient.get('/api/Captcha/get');
-      if (!mounted) return;
-      final body = jsonDecode(req.responseText);
-      setState(() {
-        _captchaToken = body['token'];
-        _captchaSvg = body['svg'];
-      });
-    } catch (_) {
+    final body = await CaptchaController.captcha();
+    if (body == null) {
       if (mounted) setState(() => _errorMessage = '验证码加载失败');
+      return;
     }
+    if (!mounted) return;
+    setState(() {
+      _captchaToken = body.token;
+      _captchaSvg = body.svg;
+    });
   }
 
   void _refreshCaptcha() => _loadCaptcha();
@@ -127,51 +131,30 @@ class _LoginInputState extends State<_LoginInput> {
       _errorMessage = null;
     });
 
-    try {
-      await _login();
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    await _login();
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _login() async {
-    try {
-      final req = await HttpClient.post(
-        '/api/User/login',
-        body: jsonEncode({
-          'username': _usernameController.text,
-          'password': _passwordController.text,
-          'captchaToken': _captchaToken,
-          'captchaCode': _captchaController.text,
-        }),
-      );
+    final user = await UserController.login(
+      _usernameController.text,
+      _passwordController.text,
+      _captchaToken,
+      _captchaController.text,
+    );
+    if (!mounted) return;
 
-      if (!mounted) return;
-
-      if (req.status == 200) {
-        final body = jsonDecode(req.responseText);
-        if (body['code'] == 200) {
-          final adminReq = await HttpClient.get('/api/System/admin_check');
-          if (!mounted) return;
-          if (adminReq.status == 200) {
-            context.go('/main');
-          } else {
-            setState(() => _errorMessage = '非管理员账户，无权限登录');
-            await Future.delayed(const Duration(seconds: 2));
-            if (mounted) context.go('/');
-          }
-        } else {
-          setState(() => _errorMessage = body['message'] ?? '用户名或密码错误');
-          _refreshCaptcha();
-        }
+    if (user) {
+      if (await UserController.adminCheck()) {
+        if (!mounted) return;
+        context.go('/main');
       } else {
-        setState(() => _errorMessage = '请求失败（${req.status}）');
-        _refreshCaptcha();
+        setState(() => _errorMessage = '非管理员账户，无权限登录');
       }
-    } catch (e) {
-      if (mounted) setState(() => _errorMessage = '网络错误：$e');
-      _refreshCaptcha();
+    } else {
+      setState(() => _errorMessage = '登录失败');
     }
+    _refreshCaptcha();
   }
 
   @override
@@ -186,7 +169,10 @@ class _LoginInputState extends State<_LoginInput> {
   @override
   Widget build(BuildContext context) {
     if (_isChecking) {
-      return const SizedBox(width: 400, child: Center(child: CircularProgressIndicator()));
+      return const SizedBox(
+        width: 400,
+        child: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return SizedBox(
@@ -206,7 +192,11 @@ class _LoginInputState extends State<_LoginInput> {
                 children: [
                   const Icon(Icons.admin_panel_settings, size: 32),
                   const SizedBox(width: 15),
-                  Text('管理系统后台', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
+                  Text(
+                    '管理系统后台',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
               const SizedBox(height: 32),
@@ -234,8 +224,13 @@ class _LoginInputState extends State<_LoginInput> {
                   suffixIcon: Padding(
                     padding: EdgeInsetsGeometry.only(right: 4),
                     child: IconButton(
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
                     ),
                   ),
                 ),
@@ -257,11 +252,13 @@ class _LoginInputState extends State<_LoginInput> {
                         prefixIcon: const Icon(Icons.security),
                       ),
                       maxLength: 4,
-                      buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
-                      validator: (value) {
-                        if (value?.isEmpty ?? true) return '请输入验证码';
-                        return null;
-                      },
+                      buildCounter:
+                          (
+                            _, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                       onFieldSubmitted: (_) => _submit(),
                     ),
                   ),
@@ -269,23 +266,32 @@ class _LoginInputState extends State<_LoginInput> {
                   if (_captchaSvg.isNotEmpty)
                     GestureDetector(
                       onTap: _refreshCaptcha,
-                      child: Center(child: SvgPicture.string(_captchaSvg, width: 130, height: 48)),
+                      child: Center(
+                        child: SvgPicture.string(
+                          _captchaSvg,
+                          width: 130,
+                          height: 48,
+                        ),
+                      ),
                     ),
                 ],
               ),
               const SizedBox(height: 16),
-              FilledButton(
-                onPressed: _isLoading ? null : _submit,
-                child: _isLoading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : Text('登 录'),
-              ),
+              AsyncButton(child: Text('登 录')).action(() async {
+                if (_isLoading) {
+                  return false;
+                }
+                _submit();
+                return true;
+              }),
               if (_errorMessage != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),

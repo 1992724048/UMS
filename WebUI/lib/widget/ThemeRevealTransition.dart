@@ -28,7 +28,7 @@ class ThemeRevealTransition extends StatefulWidget {
     required this.onToggle,
     this.seedColor = const Color(0xFF448AFF),
     this.onColorChanged,
-    this.duration = const Duration(milliseconds: 500),
+    this.duration = const Duration(milliseconds: 800),
     this.controller,
     this.showButton = true,
   });

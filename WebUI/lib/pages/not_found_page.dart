@@ -1,4 +1,6 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:webui/widget/AsyncButton.dart';
 
 class NotFoundPage extends StatelessWidget {
   const NotFoundPage({super.key});
@@ -9,29 +11,33 @@ class NotFoundPage extends StatelessWidget {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: .min,
           children: [
             Row(
               mainAxisAlignment: .center,
+              mainAxisSize: .min,
               children: [
-                const Icon(Icons.error_outline, size: 32, color: Colors.grey),
                 Text(
-                  '404',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.displayLarge?.copyWith(color: Colors.grey, fontWeight: FontWeight.bold),
+                  '前面的区域以后再来探索吧!',
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text('页面不存在', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey)),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.of(context).pushReplacementNamed('/');
-              },
-              icon: const Icon(Icons.home),
-              label: const Text('返回首页'),
-            ),
+            AsyncButton(
+              child: Row(
+                mainAxisSize: .min,
+                crossAxisAlignment: .center,
+                mainAxisAlignment: .center,
+                children: [const Icon(Icons.home), const Text(' 返回首页')],
+              ),
+            ).action(() async {
+              context.go('/');
+              return true;
+            }),
           ],
         ),
       ),

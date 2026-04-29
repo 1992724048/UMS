@@ -1,10 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:md_icons/md_icons.dart';
+import 'package:webui/controllers/UserController.dart';
 import '../mixin/page_load_timer.dart';
-import '../utils/http.dart';
-import 'main_home_page.dart';
-import 'main_users_page.dart';
+import 'main_pages/main_home_page.dart';
+import 'main_pages/main_users_page.dart';
 
 class MainPageRoutes {
   static const String home = 'home';
@@ -147,9 +147,9 @@ class _MainPageState extends State<MainPage> with PageLoadTimer {
 
   Future<void> _checkAdmin() async {
     try {
-      final req = await HttpClient.get('/api/System/admin_check');
+      final req = await UserController.adminCheck();
       if (!mounted) return;
-      if (req.status != 200) {
+      if (!req) {
         context.go('/');
       }
     } catch (_) {
@@ -160,22 +160,14 @@ class _MainPageState extends State<MainPage> with PageLoadTimer {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 45,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        surfaceTintColor: Colors.transparent,
-        title: _AppTopBar(),
-      ),
-      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      body: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-        child: _BodyPage(),
-      ),
+      body: _BodyPage(),
       floatingActionButton: Padding(
         padding: EdgeInsetsGeometry.only(bottom: 35),
         child: Text(
           '1.0.0 (Dev)\n${MainPage.duration.inMilliseconds} ms',
-          style: TextStyle(color: Theme.of(context).textTheme.titleSmall?.color?.withAlpha(50)),
+          style: TextStyle(
+            color: Theme.of(context).textTheme.titleSmall?.color?.withAlpha(50),
+          ),
         ),
       ),
     );
@@ -189,43 +181,6 @@ class _MainPageState extends State<MainPage> with PageLoadTimer {
   }
 }
 
-class _AppTopBar extends StatefulWidget {
-  const _AppTopBar();
-
-  @override
-  State<StatefulWidget> createState() => _AppTopBarState();
-}
-
-class _AppTopBarState extends State<_AppTopBar> {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: .center,
-      children: [
-        Expanded(
-          child: Row(
-            crossAxisAlignment: .center,
-            children: [Text('管理系统后台面板', style: TextStyle(fontSize: 18))],
-          ),
-        ),
-        IconButton(
-          onPressed: () async {
-            try {
-              final req = await HttpClient.post('/api/User/logout');
-              if (!mounted) return;
-              if (req.status == 200) {
-                context.go('/');
-              }
-            } catch (_) {}
-          },
-          tooltip: '登出',
-          icon: Icon(Icons.logout),
-        ),
-      ],
-    );
-  }
-}
-
 class _BodyPage extends StatefulWidget {
   const _BodyPage();
 
@@ -234,18 +189,18 @@ class _BodyPage extends StatefulWidget {
 }
 
 class _BodyPageState extends State<_BodyPage> {
-  late final ScrollController _scrollController;
+  late final PageController _pageController;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController();
+    _pageController = PageController();
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -261,20 +216,22 @@ class _BodyPageState extends State<_BodyPage> {
           _SideBar(
             currentRoute: currentRoute,
             onRouteSelected: (route) {
-              final newIndex = allItems.indexWhere((item) => item.route == route);
+              final newIndex = allItems.indexWhere(
+                (item) => item.route == route,
+              );
               if (newIndex != -1) {
                 setState(() {
                   _currentIndex = newIndex;
-                  _scrollController.animateTo(
-                    _currentIndex * MediaQuery.of(context).size.height,
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeInOutCubic,
+                  _pageController.animateToPage(
+                    _currentIndex,
+                    duration: Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
                   );
                 });
               }
             },
           ),
-          _PageBody(scrollController: _scrollController, allItems: allItems),
+          _PageBody(pageController: _pageController, allItems: allItems),
         ],
       ),
     );
@@ -299,11 +256,27 @@ class _SideBarState extends State<_SideBar> {
       child: SizedBox(
         width: 50,
         child: Padding(
-          padding: EdgeInsetsGeometry.only(top: 5, bottom: 5),
+          padding: .only(top: 5, bottom: 5),
           child: Column(
             children: [
-              Expanded(child: Column(spacing: 5, children: [..._buildFromItems(MainPage.navTopItems)])),
+              Expanded(
+                child: Column(
+                  spacing: 5,
+                  children: [..._buildFromItems(MainPage.navTopItems)],
+                ),
+              ),
               ..._buildFromItems(MainPage.navBottomItems),
+              IconButton(
+                onPressed: () async {
+                  if (!mounted) return;
+                  if (await UserController.logout()) {
+                    if (!mounted) return;
+                    context.go('/');
+                  }
+                },
+                tooltip: '登出',
+                icon: Icon(Icons.close),
+              ),
             ],
           ),
         ),
@@ -330,17 +303,19 @@ class _SideBarState extends State<_SideBar> {
       icon: Icon(item.icon),
       color: isSelected ? Theme.of(context).colorScheme.primary : null,
       style: IconButton.styleFrom(
-        backgroundColor: isSelected ? Theme.of(context).colorScheme.primaryContainer : Colors.transparent,
+        backgroundColor: isSelected
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Colors.transparent,
       ),
     );
   }
 }
 
 class _PageBody extends StatefulWidget {
-  final ScrollController scrollController;
+  final PageController pageController;
   final List<MainPageNavItem> allItems;
 
-  const _PageBody({required this.scrollController, required this.allItems});
+  const _PageBody({required this.pageController, required this.allItems});
 
   @override
   State<StatefulWidget> createState() => _PageBodyState();
@@ -351,19 +326,25 @@ class _PageBodyState extends State<_PageBody> {
   Widget build(BuildContext context) {
     return Expanded(
       child: ClipRRect(
-        borderRadius: const BorderRadius.horizontal(left: Radius.circular(10)),
+        borderRadius: const BorderRadius.horizontal(left: .circular(10)),
         child: Container(
           color: Theme.of(context).colorScheme.surface,
           child: Padding(
-            padding: const EdgeInsets.all(5),
+            padding: const .all(5),
             child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-              child: ListView(
-                controller: widget.scrollController,
+              behavior: ScrollConfiguration.of(
+                context,
+              ).copyWith(scrollbars: false),
+              child: PageView(
+                controller: widget.pageController,
+                scrollDirection: .vertical,
                 physics: const NeverScrollableScrollPhysics(),
                 children: widget.allItems.asMap().entries.map((entry) {
                   final item = entry.value;
-                  return SizedBox(height: MediaQuery.of(context).size.height, child: item.pageWidget);
+                  return SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: item.pageWidget,
+                  );
                 }).toList(),
               ),
             ),

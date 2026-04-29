@@ -15,12 +15,5 @@ namespace WebAPI.Controllers {
         /// <response code = "200">Unix 毫秒时间戳</response>
         [HttpGet]
         public long time() => DateTimeOffset.Now.ToUnixTimeMilliseconds();
-
-        /// <summary>检查当前会话是否为管理员</summary>
-        /// <returns>管理员会话信息</returns>
-        /// <response code = "200">是管理员</response>
-        /// <response code = "401">未登录或非管理员</response>
-        [HttpGet, Admin]
-        public IActionResult admin_check() => this.Ok(new { code = 200, message = "admin" });
     }
 }

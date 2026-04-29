@@ -2,7 +2,7 @@
 
 import 'AsyncWidget.dart';
 
-enum AsyncButtonType { elevated, outlined, text }
+enum AsyncButtonType { elevated, outlined, filled, text }
 
 class AsyncButton extends AsyncActionWidget<AsyncButton> {
   final Widget child;
@@ -58,7 +58,8 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
       case AsyncButtonType.elevated:
         s = widget.style?.shape?.resolve({});
         s ??= theme.elevatedButtonTheme.style?.shape?.resolve({});
-        return s ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+        return s ??
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(5));
       case AsyncButtonType.text:
         s = widget.style?.shape?.resolve({});
         s ??= theme.textButtonTheme.style?.shape?.resolve({});
@@ -66,7 +67,13 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
       case AsyncButtonType.outlined:
         s = widget.style?.shape?.resolve({});
         s ??= theme.outlinedButtonTheme.style?.shape?.resolve({});
-        return s ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+        return s ??
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(5));
+      case AsyncButtonType.filled:
+        s = widget.style?.shape?.resolve({});
+        s ??= theme.filledButtonTheme.style?.shape?.resolve({});
+        return s ??
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(5));
     }
   }
 
@@ -77,14 +84,40 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
     final hasProgress = progress != null && progress != -1;
     final shape = _resolveShape(context);
 
-    Widget buildButton(Widget child) {
+    final baseStyle = ButtonStyle(shape: WidgetStateProperty.all(shape));
+
+    Widget buildButton({VoidCallback? onPressed}) {
+      final child = AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: busy ? 0.5 : 1.0,
+        child: widget.child,
+      );
+
       switch (widget.type) {
         case AsyncButtonType.elevated:
-          return ElevatedButton(onPressed: busy ? null : execute, style: widget.style, child: child);
+          return ElevatedButton(
+            onPressed: busy ? null : (onPressed ?? execute),
+            style: baseStyle.merge(widget.style),
+            child: child,
+          );
         case AsyncButtonType.text:
-          return TextButton(onPressed: busy ? null : execute, style: widget.style, child: child);
+          return TextButton(
+            onPressed: busy ? null : (onPressed ?? execute),
+            style: baseStyle.merge(widget.style),
+            child: child,
+          );
         case AsyncButtonType.outlined:
-          return OutlinedButton(onPressed: busy ? null : execute, style: widget.style, child: child);
+          return OutlinedButton(
+            onPressed: busy ? null : (onPressed ?? execute),
+            style: baseStyle.merge(widget.style),
+            child: child,
+          );
+        case AsyncButtonType.filled:
+          return FilledButton(
+            onPressed: busy ? null : (onPressed ?? execute),
+            style: baseStyle.merge(widget.style),
+            child: child,
+          );
       }
     }
 
@@ -93,6 +126,11 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
         return Stack(
           alignment: Alignment.center,
           children: [
+            Opacity(
+              opacity: 0,
+              child: IgnorePointer(child: buildButton(onPressed: null)),
+            ),
+            Positioned.fill(child: buildButton()),
             if (busy)
               Positioned.fill(
                 child: ClipPath.shape(
@@ -102,19 +140,16 @@ class _AsyncButtonState extends AsyncActionWidgetState<AsyncButton> {
                           alignment: Alignment.centerLeft,
                           child: FractionallySizedBox(
                             widthFactor: progress.clamp(0, 1),
-                            child: Container(color: colorScheme.primary.withAlpha(127)),
+                            child: Container(
+                              color: colorScheme.primary.withAlpha(127),
+                            ),
                           ),
                         )
-                      : LinearProgressIndicator(backgroundColor: Colors.transparent),
+                      : LinearProgressIndicator(
+                          backgroundColor: Colors.transparent,
+                        ),
                 ),
               ),
-            buildButton(
-              AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: busy ? 0.5 : 1.0,
-                child: widget.child,
-              ),
-            ),
           ],
         );
       },

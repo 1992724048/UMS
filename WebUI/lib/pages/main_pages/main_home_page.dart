@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:webui/widget/CustomCard.dart';
 
-import '../widget/SmoothScrollView.dart';
+import '../../widget/SmoothScrollView.dart';
 
-class MainUsersPage extends StatefulWidget {
-  const MainUsersPage({super.key});
+class MainHomePage extends StatefulWidget {
+  const MainHomePage({super.key});
 
   @override
-  State<StatefulWidget> createState() => _MainUsersPageState();
+  State<StatefulWidget> createState() => _MainHomePageState();
 }
 
-class _MainUsersPageState extends State<MainUsersPage> with AutomaticKeepAliveClientMixin {
+class _MainHomePageState extends State<MainHomePage> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 

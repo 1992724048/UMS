@@ -1,4 +1,4 @@
-﻿// 2026-04-25 18:10:34
+﻿// 2026-04-29 01:33:07
 
 namespace WebAPI.Controllers {
     #region
@@ -57,7 +57,7 @@ namespace WebAPI.Controllers {
 
             this.Response.Cookies.Append("session", token, new() { HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, MaxAge = TimeSpan.FromDays(7) });
 
-            return this.Ok(new { code = 200, message = "ok" });
+            return this.Ok(new { code = 200, message = user.Value.to_json() });
         }
 
         /// <summary>获取用户列表</summary>
@@ -106,6 +106,13 @@ namespace WebAPI.Controllers {
             User? user = Struct.User.create(request.Username, request.Password, request.Email ?? "", false);
             return user.HasValue ? this.Ok(new { code = 200, message = "注册成功" }) : this.Ok(new { code = 500, message = "注册失败" });
         }
+
+        /// <summary>检查当前会话是否为管理员</summary>
+        /// <returns>管理员会话信息</returns>
+        /// <response code = "200">是管理员</response>
+        /// <response code = "401">未登录或非管理员</response>
+        [HttpGet, Admin]
+        public IActionResult admin_check() => this.Ok(new { code = 200, message = "admin" });
 
         /// <summary>登录请求</summary>
         /// <param name = "Username">用户名（最少 3 个字符）</param>
