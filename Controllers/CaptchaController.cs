@@ -11,40 +11,46 @@ namespace WebAPI.Controllers {
 
     [ApiController, Route("api/[controller]/[action]")]
     public class CaptchaController : ControllerBase {
-        static readonly ConcurrentDictionary<string, CaptchaEntry> Store = new();
-        static readonly TimeSpan Ttl = TimeSpan.FromMinutes(5);
+        static readonly ConcurrentDictionary<string, string> IpTokenMap = new();
 
         /// <summary>获取验证码</summary>
         /// <returns>验证码 token 和 SVG 图像</returns>
-        /// <response code = "200">token + svg</response>
+        /// <response code = "200" >生成成功</response>
         [HttpGet]
-        public IActionResult get() {
-            CaptchaController.cleanup();
+        public CaptchaData get() {
+            string ip = this.get_ip();
+            if (CaptchaController.IpTokenMap.TryGetValue(ip, out string? old_token)) {
+                TokenList.remove(old_token);
+                CaptchaController.IpTokenMap.TryRemove(ip, out string _);
+            }
 
-            var token = Guid.NewGuid().ToString("N");
-            string code = Captcha.generate();
+            Token<string> token = TokenList.generate<string>();
+            token.Value = Captcha.generate();
 
-            CaptchaController.Store[token] = new(code, DateTimeOffset.UtcNow);
-
-            return this.Ok(new { token, svg = Captcha.render(code) });
+            CaptchaController.IpTokenMap[ip] = token.TokenString;
+            return new(token.TokenString, Captcha.render(token.Value));
         }
 
         internal static bool verify(string token, string code) {
-            if (CaptchaController.Store.TryRemove(token, out CaptchaEntry? entry)) {
-                return entry.Code.Equals(code, StringComparison.OrdinalIgnoreCase) && ((DateTimeOffset.UtcNow - entry.CreatedAt) <= CaptchaController.Ttl);
+            Token<string>? data = TokenList.find<string>(token);
+            if (data == null) {
+                return false;
             }
-            return false;
-        }
 
-        static void cleanup() {
-            DateTimeOffset cutoff = DateTimeOffset.UtcNow - CaptchaController.Ttl;
-            foreach (string key in CaptchaController.Store.Keys) {
-                if (CaptchaController.Store.TryGetValue(key, out CaptchaEntry? entry) && (entry.CreatedAt < cutoff)) {
-                    CaptchaController.Store.TryRemove(key, out CaptchaEntry _);
+            TokenList.remove(token);
+            foreach (KeyValuePair<string, string> kv in CaptchaController.IpTokenMap) {
+                if (kv.Value != token) {
+                    continue;
                 }
+                CaptchaController.IpTokenMap.TryRemove(kv.Key, out string _);
+                break;
             }
+
+            return data.Value == code;
         }
 
-        record CaptchaEntry(string Code, DateTimeOffset CreatedAt);
+        string get_ip() => this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        public record CaptchaData(string Token, string Svg);
     }
 }

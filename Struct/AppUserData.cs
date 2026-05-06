@@ -19,7 +19,7 @@ namespace WebAPI.Struct {
         public long Id { get; init; }
 
         public static AppUserData? create(long userId, long appId, long keyId, long expirationTime) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("INSERT INTO app_user_data(user_id, app_id, key_id, expiration_time, create_time) VALUES (@user_id, @app_id, @key_id, @expiration_time, @create_time); SELECT last_insert_rowid();", conn);
@@ -34,7 +34,7 @@ namespace WebAPI.Struct {
         }
 
         public static AppUserData? find_with_id(long id) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("SELECT id, user_id, app_id, key_id, create_time, expiration_time FROM app_user_data WHERE id = @id", conn);
@@ -49,7 +49,7 @@ namespace WebAPI.Struct {
         }
 
         public static List<AppUserData> find_with_user_id(long userId) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("SELECT id, user_id, app_id, key_id, create_time, expiration_time FROM app_user_data WHERE user_id = @user_id", conn);
@@ -64,7 +64,7 @@ namespace WebAPI.Struct {
         }
 
         public static List<AppUserData> find_with_app_id(long appId) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("SELECT id, user_id, app_id, key_id, create_time, expiration_time FROM app_user_data WHERE app_id = @app_id", conn);
@@ -79,7 +79,7 @@ namespace WebAPI.Struct {
         }
 
         public static List<AppUserData> find_with_key_id(long keyId) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("SELECT id, user_id, app_id, key_id, create_time, expiration_time FROM app_user_data WHERE key_id = @key_id", conn);
@@ -94,7 +94,7 @@ namespace WebAPI.Struct {
         }
 
         public bool save() {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             if (this.Id <= 0) {
@@ -116,7 +116,7 @@ namespace WebAPI.Struct {
         public static AppUserData? from_json(string json) => JsonSerializer.Deserialize<AppUserData>(json, AppUserData.JsonOptions);
 
         public static PageResult<AppUserData> list_page(int page = 1, int pageSize = 20) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var count_cmd = new SQLiteCommand("SELECT COUNT(*) FROM app_user_data", conn);
@@ -132,7 +132,7 @@ namespace WebAPI.Struct {
                 data.Add(new(reader.GetInt64(reader.GetOrdinal("user_id")), reader.GetInt64(reader.GetOrdinal("app_id")), reader.GetInt64(reader.GetOrdinal("key_id"))) { Id = reader.GetInt64(reader.GetOrdinal("id")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), ExpirationTime = reader.GetInt64(reader.GetOrdinal("expiration_time")) });
             }
 
-            return new() { Data = data, Total = total, Page = page, PageSize = pageSize };
+            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)(total / pageSize) };
         }
     }
 }

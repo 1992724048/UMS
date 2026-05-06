@@ -1,2 +1,5 @@
 [server]
 scalar_ui = true
+certificate_password = ""
+certificate = ""
+port = 443

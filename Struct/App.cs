@@ -19,7 +19,7 @@ namespace WebAPI.Struct {
         public long Id { get; init; }
 
         public static App? create(string appName) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("INSERT INTO apps(app_name, app_disable, create_time, key_num, user_num) VALUES (@app_name, @app_disable, @create_time, @key_num, @user_num); SELECT last_insert_rowid();", conn);
@@ -34,7 +34,7 @@ namespace WebAPI.Struct {
         }
 
         public static App? find_with_name(string appName) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("SELECT aid, app_name, app_disable, create_time, key_num, user_num FROM apps WHERE app_name = @app_name", conn);
@@ -48,7 +48,7 @@ namespace WebAPI.Struct {
         }
 
         public static App? find_with_id(long appId) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var cmd = new SQLiteCommand("SELECT aid, app_name, app_disable, create_time, key_num, user_num FROM apps WHERE aid = @id", conn);
@@ -62,7 +62,7 @@ namespace WebAPI.Struct {
         }
 
         public bool save() {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             if (this.Id <= 0) {
@@ -84,7 +84,7 @@ namespace WebAPI.Struct {
         public static App? from_json(string json) => JsonSerializer.Deserialize<App>(json, App.JsonOptions);
 
         public static PageResult<App> list_page(int page = 1, int pageSize = 20) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var count_cmd = new SQLiteCommand("SELECT COUNT(*) FROM apps", conn);
@@ -100,7 +100,7 @@ namespace WebAPI.Struct {
                 data.Add(new(reader.GetString(reader.GetOrdinal("app_name"))) { Id = reader.GetInt64(reader.GetOrdinal("aid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsDisabled = reader.GetBoolean(reader.GetOrdinal("app_disable")), KeyNum = reader.GetInt64(reader.GetOrdinal("key_num")), UserNum = reader.GetInt64(reader.GetOrdinal("user_num")) });
             }
 
-            return new() { Data = data, Total = total, Page = page, PageSize = pageSize };
+            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)(total / pageSize) };
         }
     }
 }

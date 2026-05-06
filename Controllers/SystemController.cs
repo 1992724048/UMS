@@ -4,7 +4,6 @@ namespace WebAPI.Controllers {
     #region
 
     using Microsoft.AspNetCore.Mvc;
-    using WebAPI.Filters;
 
     #endregion
 

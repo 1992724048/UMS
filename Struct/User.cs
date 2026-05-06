@@ -21,62 +21,74 @@ namespace WebAPI.Struct {
         public string Email { get; set; } = email;
         public bool IsAdmin { get; set; } = isAdmin;
         public long CreateTime { get; init; }
-
+        public bool IsBanned { get; set; } = false;
         public long Id { get; init; }
 
         public static string hash(string raw) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
 
         public static User? create(string username, string password, string email, bool isAdmin) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
-            using var cmd = new SQLiteCommand("INSERT INTO users(username, password, email, is_admin, create_time) VALUES (@username, @password, @email, @isAdmin, @create_time); SELECT last_insert_rowid();", conn);
+            using var cmd = new SQLiteCommand("INSERT INTO users(username, password, email, is_admin, create_time, is_banned) VALUES (@username, @password, @email, @isAdmin, @create_time, @is_banned); SELECT last_insert_rowid();", conn);
             cmd.Parameters.AddWithValue("@username", username);
             cmd.Parameters.AddWithValue("@password", User.hash(password));
             cmd.Parameters.AddWithValue("@email", email);
             cmd.Parameters.AddWithValue("@isAdmin", isAdmin);
             cmd.Parameters.AddWithValue("@create_time", DateTimeOffset.Now.ToUnixTimeMilliseconds());
+            cmd.Parameters.AddWithValue("@is_banned", false);
 
             var new_id = (long)cmd.ExecuteScalar();
             return new_id > 0 ? new User(username, User.hash(password), email, isAdmin) { Id = new_id, CreateTime = DateTimeOffset.Now.ToUnixTimeMilliseconds() } : null;
         }
 
         public static User? find_with_name(string username) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
-            using var cmd = new SQLiteCommand("SELECT uid, username, password, email, is_admin, create_time FROM users WHERE username = @username", conn);
+            using var cmd = new SQLiteCommand("SELECT * FROM users WHERE username = @username", conn);
             cmd.Parameters.AddWithValue("@username", username);
 
             using SQLiteDataReader? reader = cmd.ExecuteReader();
-            return reader.Read() ? new User(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")) } : null;
+            return reader.Read() ? new User(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsBanned = reader.GetBoolean(reader.GetOrdinal("is_banned")) } : null;
         }
 
         public static User? find_with_id(long uid) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
-            using var cmd = new SQLiteCommand("SELECT uid, username, password, email, is_admin, create_time FROM users WHERE uid = @uid", conn);
+            using var cmd = new SQLiteCommand("SELECT * FROM users WHERE uid = @uid", conn);
             cmd.Parameters.AddWithValue("@uid", uid);
 
             using SQLiteDataReader? reader = cmd.ExecuteReader();
-            return reader.Read() ? new User(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")) } : null;
+            return reader.Read() ? new User(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsBanned = reader.GetBoolean(reader.GetOrdinal("is_banned")) } : null;
         }
 
-        public bool save() {
-            using SQLiteConnection conn = Pool.get_connection();
+        public bool delete() {
+            using SQLiteConnection conn = Conn.get_connection();
+            conn.Open();
+
+            using var cmd = new SQLiteCommand("DELETE FROM users WHERE uid = @uid", conn);
+            cmd.Parameters.AddWithValue("@uid", this.Id);
+
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+        public bool update() {
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             if (this.Id <= 0) {
                 return false;
             }
 
-            using var cmd = new SQLiteCommand("UPDATE users SET username = @username, password = @password, email = @email, is_admin = @isAdmin WHERE uid = @id", conn);
+            using var cmd = new SQLiteCommand("UPDATE users SET username = @username, password = @password, email = @email, is_admin = @isAdmin, is_banned = @isBanned WHERE uid = @id", conn);
             cmd.Parameters.AddWithValue("@id", this.Id);
             cmd.Parameters.AddWithValue("@username", this.Username);
             cmd.Parameters.AddWithValue("@password", this.Password);
             cmd.Parameters.AddWithValue("@email", this.Email);
             cmd.Parameters.AddWithValue("@isAdmin", this.IsAdmin);
+            cmd.Parameters.AddWithValue("@isBanned", this.IsBanned);
 
             return cmd.ExecuteNonQuery() > 0;
         }
@@ -88,23 +100,23 @@ namespace WebAPI.Struct {
         public static User? from_json(string json) => JsonSerializer.Deserialize<User>(json, User.JsonOptions);
 
         public static PageResult<User> list_page(int page = 1, int pageSize = 20) {
-            using SQLiteConnection conn = Pool.get_connection();
+            using SQLiteConnection conn = Conn.get_connection();
             conn.Open();
 
             using var count_cmd = new SQLiteCommand("SELECT COUNT(*) FROM users", conn);
             var total = (long)count_cmd.ExecuteScalar();
 
-            using var cmd = new SQLiteCommand("SELECT uid, username, password, email, is_admin, create_time FROM users ORDER BY uid DESC LIMIT @limit OFFSET @offset", conn);
+            using var cmd = new SQLiteCommand("SELECT * FROM users ORDER BY uid DESC LIMIT @limit OFFSET @offset", conn);
             cmd.Parameters.AddWithValue("@limit", pageSize);
             cmd.Parameters.AddWithValue("@offset", (page - 1) * pageSize);
 
             using SQLiteDataReader reader = cmd.ExecuteReader();
             var data = new List<User>();
             while (reader.Read()) {
-                data.Add(new(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")) });
+                data.Add(new(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsBanned = reader.GetBoolean(reader.GetOrdinal("is_banned")) });
             }
 
-            return new() { Data = data, Total = total, Page = page, PageSize = pageSize };
+            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)(total / pageSize) };
         }
     }
 }

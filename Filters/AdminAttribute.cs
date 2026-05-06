@@ -7,6 +7,7 @@ namespace WebAPI.Filters {
     using Microsoft.AspNetCore.Mvc.Filters;
     using WebAPI.Controllers;
     using WebAPI.Struct;
+    using WebAPI.Utils;
 
     #endregion
 
@@ -14,12 +15,18 @@ namespace WebAPI.Filters {
     public class AdminAttribute : Attribute, IAuthorizationFilter {
         public void OnAuthorization(AuthorizationFilterContext context) {
             string? token = context.HttpContext.Request.Cookies["session"];
-            if ((token == null) || !UserController.Sessions.TryGetValue(token, out SessionEntry? entry) || (entry == null)) {
+            if (token == null) {
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
-            User? user = User.find_with_id(entry.UserId);
+            Token<SessionEntry>? data = TokenList.find<SessionEntry>(token);
+            if (data?.Value == null) {
+                context.Result = new UnauthorizedResult();
+                return;
+            }
+
+            User? user = User.find_with_id(data.Value.UserId);
             if (user is not { IsAdmin: true }) {
                 context.Result = new UnauthorizedResult();
             }
