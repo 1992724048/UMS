@@ -45,7 +45,10 @@ class CustomCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     final effectiveShadowColor =
-        shadowColor ?? (theme.brightness == Brightness.dark ? Colors.black : Colors.grey.shade400);
+        shadowColor ??
+        (theme.brightness == Brightness.dark
+            ? Colors.black
+            : Colors.grey.shade400);
 
     final alpha = (shadowIntensity * 255).clamp(0, 255).toInt();
 
@@ -53,18 +56,23 @@ class CustomCard extends StatelessWidget {
       margin: margin,
       elevation: 0,
       color: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(borderRadius)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
       child: Container(
         decoration: BoxDecoration(
           color: color ?? theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: .circular(borderRadius),
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
                     color: effectiveShadowColor.withAlpha(alpha),
                     spreadRadius: shadowSpread,
                     blurRadius: shadowBlur * (elevation / 10).clamp(0.5, 3),
-                    offset: Offset(shadowOffset.dx * (elevation / 5), shadowOffset.dy * (elevation / 5)),
+                    offset: Offset(
+                      shadowOffset.dx * (elevation / 5),
+                      shadowOffset.dy * (elevation / 5),
+                    ),
                   ),
                 ]
               : null,

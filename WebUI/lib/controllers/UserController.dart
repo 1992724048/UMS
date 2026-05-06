@@ -47,4 +47,26 @@ class UserController {
     } catch (_) {}
     return false;
   }
+
+  static Future<UserPageResult?> listUsers(int page, int pageSize) async {
+    try {
+      final req = await HttpClient.get(
+        '/api/User/list_users?page=$page&pageSize=$pageSize',
+      );
+
+      if (req.status != 200) {
+        return null;
+      }
+
+      final responseText = req.responseText;
+      if (responseText.isEmpty) {
+        return null;
+      }
+
+      final json = jsonDecode(responseText);
+      return UserPageResult.fromJson(json);
+    } catch (e) {
+      return null;
+    }
+  }
 }

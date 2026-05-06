@@ -2,6 +2,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:md_icons/md_icons.dart';
 import 'package:webui/controllers/UserController.dart';
+
 import '../mixin/page_load_timer.dart';
 import 'main_pages/main_home_page.dart';
 import 'main_pages/main_users_page.dart';
@@ -222,11 +223,7 @@ class _BodyPageState extends State<_BodyPage> {
               if (newIndex != -1) {
                 setState(() {
                   _currentIndex = newIndex;
-                  _pageController.animateToPage(
-                    _currentIndex,
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                  );
+                  _pageController.jumpToPage(_currentIndex);
                 });
               }
             },
@@ -271,7 +268,7 @@ class _SideBarState extends State<_SideBar> {
                   if (!mounted) return;
                   if (await UserController.logout()) {
                     if (!mounted) return;
-                    context.go('/');
+                    context.go('/login');
                   }
                 },
                 tooltip: '登出',
@@ -326,7 +323,7 @@ class _PageBodyState extends State<_PageBody> {
   Widget build(BuildContext context) {
     return Expanded(
       child: ClipRRect(
-        borderRadius: const BorderRadius.horizontal(left: .circular(10)),
+        borderRadius: .horizontal(left: .circular(10)),
         child: Container(
           color: Theme.of(context).colorScheme.surface,
           child: Padding(

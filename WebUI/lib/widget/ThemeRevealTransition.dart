@@ -154,7 +154,10 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: widget.seedColor,
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2))],
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))
+          ],
         ),
         child: Icon(
           Icons.palette,
@@ -174,7 +177,10 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           color: theme.colorScheme.surfaceContainerHighest,
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2))],
+          boxShadow: const [
+            BoxShadow(
+                color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))
+          ],
         ),
         child: Stack(
           children: [
@@ -253,7 +259,11 @@ class _ThemeRevealTransitionState extends State<ThemeRevealTransition> with Sing
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, 4))],
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black12,
+                          blurRadius: 12,
+                          offset: Offset(0, 4))
+                    ],
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: ClipRect(

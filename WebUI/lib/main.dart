@@ -2,19 +2,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_performance_monitor_plus/flutter_performance_monitor_plus.dart';
+import 'package:go_router/go_router.dart';
+import 'package:web/web.dart' as web;
+import 'package:webui/pages/index_page.dart';
 import 'package:webui/pages/login_page.dart';
 import 'package:webui/pages/main_page.dart';
 import 'package:webui/pages/not_found_page.dart';
 import 'package:webui/widget/ThemeRevealTransition.dart';
-import 'package:go_router/go_router.dart';
-import 'package:web/web.dart' as web;
 
 void main() {
   if (kDebugMode || kProfileMode) {
     debugProfileBuildsEnabled = true;
     debugProfileLayoutsEnabled = true;
     debugProfilePaintsEnabled = true;
-    runApp(PerformanceMonitorPlus(config: PerformanceMonitorConfig(), child: App()));
+    runApp(
+      PerformanceMonitorPlus(config: PerformanceMonitorConfig(), child: App()),
+    );
   } else {
     runApp(const App());
   }
@@ -23,7 +26,7 @@ void main() {
 final pageRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(path: '/', redirect: (context, state) => '/login'),
+    GoRoute(path: '/', builder: (context, state) => const IndexPage()),
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
     GoRoute(path: '/main', builder: (context, state) => const MainPage()),
   ],
@@ -50,7 +53,10 @@ class _AppState extends State<App> {
     );
     _darkTheme = ThemeData(
       fontFamily: 'HarmonyOS',
-      colorScheme: ColorScheme.fromSeed(seedColor: _seedColor, brightness: Brightness.dark),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _seedColor,
+        brightness: Brightness.dark,
+      ),
     );
   }
 
