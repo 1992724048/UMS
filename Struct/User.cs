@@ -15,7 +15,7 @@ namespace WebAPI.Struct {
     public struct User(string username, string password, string email, bool isAdmin) {
         public string Username { get; set; } = username;
 
-        [JsonIgnore]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWriting)]
         public string Password { get; set; } = password;
 
         public string Email { get; set; } = email;
@@ -59,6 +59,17 @@ namespace WebAPI.Struct {
 
             using var cmd = new SQLiteCommand("SELECT * FROM users WHERE uid = @uid", conn);
             cmd.Parameters.AddWithValue("@uid", uid);
+
+            using SQLiteDataReader? reader = cmd.ExecuteReader();
+            return reader.Read() ? new User(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsBanned = reader.GetBoolean(reader.GetOrdinal("is_banned")) } : null;
+        }
+
+        public static User? find_with_email(string email) {
+            using SQLiteConnection conn = Conn.get_connection();
+            conn.Open();
+
+            using var cmd = new SQLiteCommand("SELECT * FROM users WHERE email = @email", conn);
+            cmd.Parameters.AddWithValue("@email", email);
 
             using SQLiteDataReader? reader = cmd.ExecuteReader();
             return reader.Read() ? new User(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsBanned = reader.GetBoolean(reader.GetOrdinal("is_banned")) } : null;
@@ -116,7 +127,7 @@ namespace WebAPI.Struct {
                 data.Add(new(reader.GetString(reader.GetOrdinal("username")), reader.GetString(reader.GetOrdinal("password")), reader.GetString(reader.GetOrdinal("email")), reader.GetBoolean(reader.GetOrdinal("is_admin"))) { Id = reader.GetInt64(reader.GetOrdinal("uid")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), IsBanned = reader.GetBoolean(reader.GetOrdinal("is_banned")) });
             }
 
-            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)(total / pageSize) };
+            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)Math.Ceiling((double)total / pageSize) };
         }
     }
 }

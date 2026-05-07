@@ -132,7 +132,7 @@ namespace WebAPI.Struct {
                 data.Add(new(reader.GetInt64(reader.GetOrdinal("user_id")), reader.GetInt64(reader.GetOrdinal("app_id")), reader.GetInt64(reader.GetOrdinal("key_id"))) { Id = reader.GetInt64(reader.GetOrdinal("id")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")), ExpirationTime = reader.GetInt64(reader.GetOrdinal("expiration_time")) });
             }
 
-            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)(total / pageSize) };
+            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)Math.Ceiling((double)total / pageSize) };
         }
     }
 }

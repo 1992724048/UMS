@@ -29,28 +29,19 @@ class MainPageNavItem {
   final Widget? prevWidget;
   final Widget? nextWidget;
 
-  const MainPageNavItem({
-    required this.icon,
-    required this.tooltip,
-    required this.route,
-    required this.pageWidget,
-    this.prevWidget,
-    this.nextWidget,
-  });
+  const MainPageNavItem(
+      {required this.icon, required this.tooltip, required this.route, required this.pageWidget, this.prevWidget, this.nextWidget});
 }
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
-  static Duration duration = Duration();
   static List<MainPageNavItem> navTopItems = [
-    MainPageNavItem(
-      icon: Icons.home,
-      tooltip: '主页',
-      route: MainPageRoutes.home,
-      nextWidget: const Divider(indent: 15, endIndent: 15),
-      pageWidget: MainHomePage(),
-    ),
+    MainPageNavItem(icon: Icons.home,
+        tooltip: '主页',
+        route: MainPageRoutes.home,
+        nextWidget: const Divider(indent: 15, endIndent: 15),
+        pageWidget: MainHomePage()),
     const MainPageNavItem(
       icon: Icons.app_registration,
       tooltip: '应用',
@@ -59,12 +50,10 @@ class MainPage extends StatefulWidget {
         children: [Text('2', style: TextStyle(color: Colors.white))],
       ),
     ),
-    const MainPageNavItem(
-      icon: Icons.supervised_user_circle,
-      tooltip: '用户',
-      route: MainPageRoutes.users,
-      pageWidget: MainUsersPage(),
-    ),
+    const MainPageNavItem(icon: Icons.supervised_user_circle,
+        tooltip: '用户',
+        route: MainPageRoutes.users,
+        pageWidget: MainUsersPage()),
     const MainPageNavItem(
       icon: Icons.key,
       tooltip: '密钥',
@@ -139,7 +128,7 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> with PageLoadTimer {
+class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
@@ -160,25 +149,7 @@ class _MainPageState extends State<MainPage> with PageLoadTimer {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _BodyPage(),
-      floatingActionButton: Padding(
-        padding: EdgeInsetsGeometry.only(bottom: 35),
-        child: Text(
-          '1.0.0 (Dev)\n${MainPage.duration.inMilliseconds} ms',
-          style: TextStyle(
-            color: Theme.of(context).textTheme.titleSmall?.color?.withAlpha(50),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void onPageLoaded(Duration duration) {
-    setState(() {
-      MainPage.duration = duration;
-    });
+    return Scaffold(body: _BodyPage());
   }
 }
 
@@ -217,9 +188,8 @@ class _BodyPageState extends State<_BodyPage> {
           _SideBar(
             currentRoute: currentRoute,
             onRouteSelected: (route) {
-              final newIndex = allItems.indexWhere(
-                (item) => item.route == route,
-              );
+              final newIndex = allItems.indexWhere((item) =>
+              item.route == route);
               if (newIndex != -1) {
                 setState(() {
                   _currentIndex = newIndex;
@@ -256,12 +226,8 @@ class _SideBarState extends State<_SideBar> {
           padding: .only(top: 5, bottom: 5),
           child: Column(
             children: [
-              Expanded(
-                child: Column(
-                  spacing: 5,
-                  children: [..._buildFromItems(MainPage.navTopItems)],
-                ),
-              ),
+              Expanded(child: Column(spacing: 5,
+                  children: [..._buildFromItems(MainPage.navTopItems)])),
               ..._buildFromItems(MainPage.navBottomItems),
               IconButton(
                 onPressed: () async {
@@ -286,7 +252,7 @@ class _SideBarState extends State<_SideBar> {
       for (final item in items) ...{
         if (item.prevWidget != null) item.prevWidget!,
         _buildNavButton(item),
-        if (item.nextWidget != null) item.nextWidget!,
+        if (item.nextWidget != null) item.nextWidget!
       },
     ];
   }
@@ -299,11 +265,10 @@ class _SideBarState extends State<_SideBar> {
       tooltip: item.tooltip,
       icon: Icon(item.icon),
       color: isSelected ? Theme.of(context).colorScheme.primary : null,
-      style: IconButton.styleFrom(
-        backgroundColor: isSelected
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Colors.transparent,
-      ),
+      style: IconButton.styleFrom(backgroundColor: isSelected ? Theme
+          .of(context)
+          .colorScheme
+          .primaryContainer : Colors.transparent),
     );
   }
 }
@@ -329,19 +294,18 @@ class _PageBodyState extends State<_PageBody> {
           child: Padding(
             padding: const .all(5),
             child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(
-                context,
-              ).copyWith(scrollbars: false),
+              behavior: ScrollConfiguration.of(context).copyWith(
+                  scrollbars: false),
               child: PageView(
                 controller: widget.pageController,
                 scrollDirection: .vertical,
                 physics: const NeverScrollableScrollPhysics(),
                 children: widget.allItems.asMap().entries.map((entry) {
                   final item = entry.value;
-                  return SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: item.pageWidget,
-                  );
+                  return SizedBox(width: MediaQuery
+                      .of(context)
+                      .size
+                      .width, child: item.pageWidget);
                 }).toList(),
               ),
             ),

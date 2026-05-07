@@ -90,7 +90,7 @@ class _AppState extends State<App> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: '系统后台',
+      title: 'UMS WebUI',
       themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
       theme: _lightTheme,
       darkTheme: _darkTheme,

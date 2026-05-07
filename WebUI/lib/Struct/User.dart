@@ -1,4 +1,6 @@
-﻿class User {
+﻿import 'dart:convert';
+
+class User {
   final String username;
   String password;
   final String email;
@@ -41,15 +43,16 @@
         id: id);
   }
 
-  Map<String, dynamic> toJson() {
-    return {
+  String toJson() {
+    return jsonEncode({
       'username': username,
       'password': password,
       'email': email,
       'isAdmin': isAdmin,
+      'isBanned': isBanned,
       'createTime': createTime,
       'id': id
-    };
+    });
   }
 }
 
@@ -58,9 +61,10 @@ class UserPageResult {
   final int total;
   final int page;
   final int pageSize;
+  final int totalPage;
 
   UserPageResult(
-      {required this.data, required this.total, required this.page, required this.pageSize});
+      {required this.data, required this.total, required this.page, required this.pageSize, required this.totalPage});
 
   static UserPageResult? fromJson(Map<String, dynamic>? json) {
     if (json == null) return null;
@@ -82,21 +86,17 @@ class UserPageResult {
     final total = int.tryParse(json['total']?.toString() ?? '');
     final page = int.tryParse(json['page']?.toString() ?? '');
     final pageSize = int.tryParse(json['pageSize']?.toString() ?? '');
+    final totalPage = int.tryParse(json['totalPage']?.toString() ?? '');
 
-    if (total == null || page == null || pageSize == null) {
+    if (total == null || page == null || pageSize == null ||
+        totalPage == null) {
       return null;
     }
 
-    return UserPageResult(
-        data: users, total: total, page: page, pageSize: pageSize);
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'data': data.map((u) => u.toJson()).toList(),
-      'total': total,
-      'page': page,
-      'pageSize': pageSize
-    };
+    return UserPageResult(data: users,
+        total: total,
+        page: page,
+        pageSize: pageSize,
+        totalPage: totalPage);
   }
 }

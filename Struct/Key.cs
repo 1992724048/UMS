@@ -101,7 +101,7 @@ namespace WebAPI.Struct {
                 data.Add(new(reader.GetString(reader.GetOrdinal("key_data"))) { Id = reader.GetInt64(reader.GetOrdinal("kid")), IsUse = reader.GetBoolean(reader.GetOrdinal("is_use")), UseTime = reader.IsDBNull(reader.GetOrdinal("use_time")) ? null : reader.GetInt64(reader.GetOrdinal("use_time")), AddTime = reader.GetInt64(reader.GetOrdinal("add_time")), CreateTime = reader.GetInt64(reader.GetOrdinal("create_time")) });
             }
 
-            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)(total / pageSize) };
+            return new() { Data = data, Total = total, Page = page, PageSize = pageSize, TotalPage = (int)Math.Ceiling((double)total / pageSize) };
         }
     }
 }

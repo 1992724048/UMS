@@ -1,5 +1,6 @@
 import 'dart:convert';
-import '../Struct/CaptchaResult.dart';
+
+import '../Struct/Captcha.dart';
 import '../utils/http.dart';
 
 class CaptchaController {

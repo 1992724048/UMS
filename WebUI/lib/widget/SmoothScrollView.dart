@@ -1,8 +1,17 @@
-﻿import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 
 class SmoothScrollView extends StatefulWidget {
-  SmoothScrollView({
+  final Widget child;
+  final double scrollSpeed;
+  final double damping;
+  final int minDuration;
+  final int maxDuration;
+  final Curve curve;
+
+  final ScrollController? controller;
+
+  const SmoothScrollView({
     super.key,
     required this.child,
     this.controller,
@@ -13,23 +22,14 @@ class SmoothScrollView extends StatefulWidget {
     this.curve = Curves.easeOutCubic,
   });
 
-  final Widget child;
-  ScrollController? controller = ScrollController();
-  final double scrollSpeed;
-  final double damping;
-  final int minDuration;
-  final int maxDuration;
-  final Curve curve;
-
   @override
-  State<SmoothScrollView> createState() => _SmoothMouseScrollViewState();
+  State<SmoothScrollView> createState() => _SmoothScrollViewState();
 }
 
-class _SmoothMouseScrollViewState extends State<SmoothScrollView> with SingleTickerProviderStateMixin {
-  ScrollController _controller = ScrollController();
+class _SmoothScrollViewState extends State<SmoothScrollView>
+    with SingleTickerProviderStateMixin {
+  late final ScrollController _controller;
   late final AnimationController _anim;
-  ScrollPhysics _physics = const NeverScrollableScrollPhysics();
-
   double _target = 0;
 
   @override
@@ -54,31 +54,17 @@ class _SmoothMouseScrollViewState extends State<SmoothScrollView> with SingleTic
   void _onPointerSignal(PointerSignalEvent event) {
     if (event is PointerScrollEvent) {
       _target += event.scrollDelta.dy * widget.scrollSpeed;
-
       _target = _target.clamp(0.0, _controller.position.maxScrollExtent);
 
       final velocity = event.scrollDelta.dy.abs();
-      final duration = (widget.maxDuration - (velocity * 0.5).clamp(0, widget.maxDuration)).toInt().clamp(
-        widget.minDuration,
-        widget.maxDuration,
-      );
+      final duration = (widget.maxDuration -
+          (velocity * 0.5).clamp(0, widget.maxDuration)).toInt().clamp(
+          widget.minDuration, widget.maxDuration);
 
       _anim
         ..duration = Duration(milliseconds: duration)
         ..forward(from: 0);
     }
-  }
-
-  void _onPointerDown(PointerDownEvent event) {
-    setState(() {
-      _physics = ClampingScrollPhysics();
-    });
-  }
-
-  void _onPointerUp(PointerUpEvent event) {
-    setState(() {
-      _physics = NeverScrollableScrollPhysics();
-    });
   }
 
   @override
@@ -93,10 +79,9 @@ class _SmoothMouseScrollViewState extends State<SmoothScrollView> with SingleTic
   @override
   Widget build(BuildContext context) {
     return Listener(
-      onPointerDown: _onPointerDown,
-      onPointerUp: _onPointerUp,
       onPointerSignal: _onPointerSignal,
-      child: ListView(controller: _controller, physics: _physics, children: [widget.child]),
+      child: SingleChildScrollView(
+          controller: _controller, child: widget.child),
     );
   }
 }

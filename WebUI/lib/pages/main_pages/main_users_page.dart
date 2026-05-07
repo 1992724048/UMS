@@ -1,33 +1,42 @@
 ﻿import 'dart:math' as math;
 
-import 'package:data_table_2/data_table_2.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:webui/Struct/User.dart';
 import 'package:webui/controllers/UserController.dart';
 import 'package:webui/utils/snack_bar.dart';
 import 'package:webui/widget/AsyncButton.dart';
-import 'package:webui/widget/AsyncInput.dart';
+import 'package:webui/widget/SmoothScrollView.dart';
 
+import '../../utils/Timestamp.dart';
+import '../../utils/http.dart';
+import '../../widget/ConfirmDialog.dart';
 import '../../widget/CopyableText.dart';
-import '../../widget/SmoothScrollView.dart';
 
 class MainUsersPage extends StatefulWidget {
   const MainUsersPage({super.key});
 
   static ValueNotifier<List<User>> users = ValueNotifier<List<User>>([]);
-  static int page = 1;
-  static int pageSize = 20;
+  static ValueNotifier<int> totalPage = ValueNotifier(999);
+  static ValueNotifier<int> totalSize = ValueNotifier(0);
+  static TextEditingController pageInput = TextEditingController(text: '1');
+  static TextEditingController pageSizeInput = TextEditingController(
+      text: '20');
 
   static Future<bool> getUsers(BuildContext context) async {
-    final result = await UserController.listUsers(page, pageSize);
+    final result = await UserController.listUsers(
+        int.parse(pageInput.text), int.parse(pageSizeInput.text));
     if (result == null) {
       showErrorSnack(context, '获取用户列表失败!');
       return false;
     }
 
+    pageInput.text =
+        math.min<int>(totalPage.value, int.parse(pageInput.text)).toString();
     users.value = result.data;
+    totalSize.value = result.total;
+    totalPage.value = result.totalPage;
     return true;
   }
 
@@ -62,7 +71,7 @@ class _ToolBarState extends State<_ToolBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(left: 5, right: 5),
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(color: Theme
           .of(context)
           .colorScheme
@@ -76,31 +85,53 @@ class _ToolBarState extends State<_ToolBar> {
           SizedBox(height: 15, child: VerticalDivider()),
           AsyncButton(type: .icon, child: Icon(Icons.navigate_before))
               .action(() async {
+            int page = int.parse(MainUsersPage.pageInput.text);
+            if (page <= 1) {
+              return false;
+            }
+            MainUsersPage.pageInput.text = (page - 1).toString();
             return await MainUsersPage.getUsers(context);
           }),
+          SizedBox(width: 5),
           SizedBox(
             width: 50,
             child: TextField(
+              controller: MainUsersPage.pageInput,
+              keyboardType: .number,
               textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14),
+              onSubmitted: (value) => MainUsersPage.getUsers(context),
               decoration: InputDecoration(isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    vertical: 4, horizontal: 2),
-                border: OutlineInputBorder(),),
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: 4, horizontal: 2),
+                  border: OutlineInputBorder()),
             ),
           ),
+          ValueListenableBuilder(valueListenable: MainUsersPage.totalPage,
+              builder: (context, value, child) => Text(' / ${value}')),
+          SizedBox(width: 5),
           AsyncButton(type: .icon, child: Icon(Icons.navigate_next))
               .action(() async {
+            int page = int.parse(MainUsersPage.pageInput.text);
+            if (page >= MainUsersPage.totalPage.value) {
+              return false;
+            }
+            MainUsersPage.pageInput.text = (page + 1).toString();
             return await MainUsersPage.getUsers(context);
           }),
           SizedBox(height: 15, child: VerticalDivider()),
           SizedBox(
             width: 50,
             child: TextField(
+              controller: MainUsersPage.pageSizeInput,
+              keyboardType: .number,
               textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14),
+              onSubmitted: (value) => MainUsersPage.getUsers(context),
               decoration: InputDecoration(isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    vertical: 4, horizontal: 2),
-                border: OutlineInputBorder(),),
+                  contentPadding: EdgeInsets.symmetric(
+                      vertical: 4, horizontal: 2),
+                  border: OutlineInputBorder()),
             ),
           ),
           SizedBox(height: 15, child: VerticalDivider()),
@@ -119,9 +150,8 @@ class _UserTable extends StatefulWidget {
   State<_UserTable> createState() => _UserTableState();
 }
 
-class _UserTableState extends State<_UserTable> {
-  final int _rowsPerPage = MainUsersPage.pageSize;
-
+class _UserTableState extends State<_UserTable>
+    with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -132,105 +162,286 @@ class _UserTableState extends State<_UserTable> {
 
   @override
   Widget build(BuildContext context) {
-    final maxHeight = MediaQuery
-        .of(context)
-        .size
-        .height * 0.8;
+    return Expanded(
+      child: ValueListenableBuilder<List<User>>(
+        valueListenable: MainUsersPage.users,
+        builder: (context, list, _) {
+          if (list.isEmpty) return const Center(child: Text('暂无数据'));
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              const double minCardWidth = 500;
+              const double spacing = 5;
 
-    return SizedBox(
-      height: maxHeight,
-      child: Container(
-        decoration: BoxDecoration(color: Theme
-            .of(context)
-            .colorScheme
-            .surfaceContainer, borderRadius: BorderRadius.circular(5)),
-        clipBehavior: Clip.antiAlias,
-        child: ValueListenableBuilder<List<User>>(
-          valueListenable: MainUsersPage.users,
-          builder: (context, list, _) {
-            if (list.isEmpty) return const Center(child: Text('暂无数据'));
-            return PaginatedDataTable2(
-              hidePaginator: true,
-              rowsPerPage: list.length.clamp(1, _rowsPerPage),
-              columns: [
-                DataColumn2(label: Text('ID'), size: ColumnSize.S),
-                DataColumn2(label: Text('用户名'), size: ColumnSize.M),
-                DataColumn2(label: Text('邮箱'), size: ColumnSize.S),
-                DataColumn2(label: Text('管理员'), size: ColumnSize.S),
-                DataColumn2(label: Text('封禁'), size: ColumnSize.S),
-                DataColumn2(label: Text('创建时间'), size: ColumnSize.L),
-                DataColumn2(label: Text('操作'), size: ColumnSize.L),
-              ],
-              source: _UserDataSource(list, context),
-            );
-          },
-        ),
+              final int crossAxisCount = math.max(
+                  1, (constraints.maxWidth / (minCardWidth + spacing)).ceil());
+
+              return MasonryGridView.count(
+                physics: const ScrollPhysics(),
+                shrinkWrap: true,
+                crossAxisCount: crossAxisCount,
+                mainAxisSpacing: spacing,
+                crossAxisSpacing: spacing,
+                itemCount: list.length,
+                itemBuilder: (context, index) {
+                  return SizedBox(width: 500,
+                      height: 200,
+                      child: _UserDataCard(user: list[index]));
+                },
+              );
+            },
+          );
+        },
       ),
     );
   }
 }
 
-class _UserDataSource extends DataTableSource {
-  final List<User> users;
-  final BuildContext context;
+class _UserDataCard extends StatelessWidget {
+  User user;
 
-  _UserDataSource(this.users, this.context);
+  _UserDataCard({required this.user});
 
   @override
-  DataRow getRow(int index) {
-    final user = users[index];
+  Widget build(BuildContext context) {
+    return Container(
+      color: Theme
+          .of(context)
+          .colorScheme
+          .surfaceContainer,
+      decoration: BoxDecoration(color: Theme
+          .of(context)
+          .colorScheme
+          .surfaceContainer, borderRadius: BorderRadius.circular(5)),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: EdgeInsetsGeometry.all(10),
+              child: Column(
+                crossAxisAlignment: .start,
+                mainAxisAlignment: .start,
+                children: [
+                  Row(
+                    crossAxisAlignment: .center,
+                    children: [
+                      Icon(Icons.people),
+                      SizedBox(width: 5),
+                      Text(user.username, style: TextStyle(fontSize: 18)),
+                    ],
+                  ),
+                  Divider(endIndent: 5),
+                  Row(
+                    children: [
+                      if (user.isAdmin) ...{
+                        Container(
+                          decoration: BoxDecoration(color: Colors.green,
+                              borderRadius: BorderRadius.circular(5)),
+                          padding: const EdgeInsets.all(3),
+                          child: const Text('管理员', style: TextStyle(
+                              color: Colors.white, fontSize: 12)),
+                        ),
+                      } else
+                        ...{
+                          Container(
+                            decoration: BoxDecoration(color: Colors.blue,
+                                borderRadius: BorderRadius.circular(5)),
+                            padding: const EdgeInsets.all(3),
+                            child: const Text('用户', style: TextStyle(
+                                color: Colors.white, fontSize: 12)),
+                          ),
+                        },
+                      if (user.isBanned) ...{
+                        SizedBox(width: 5),
+                        Container(
+                          decoration: BoxDecoration(color: Colors.red,
+                              borderRadius: BorderRadius.circular(5)),
+                          padding: const EdgeInsets.all(3),
+                          child: const Text('被封禁', style: TextStyle(
+                              color: Colors.white, fontSize: 12)),
+                        ),
+                      },
+                    ],
+                  ),
+                  Divider(endIndent: 5),
+                  Row(children: [Text('ID:'), Text('${user.id}')]),
+                  Row(children: [
+                    Text('注册时间:'),
+                    Text(formatTimestamp(user.createTime))
+                  ]),
+                  Row(children: [Text('邮箱地址：'), Text(user.email)]),
+                ],
+              ),
+            ),
+          ),
+          VerticalDivider(width: 0),
+          SizedBox(
+            width: 50,
+            child: Padding(
+              padding: EdgeInsetsGeometry.only(top: 3, bottom: 3),
+              child: Column(
+                spacing: 3,
+                crossAxisAlignment: .center,
+                mainAxisAlignment: .start,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 20,
+                    onPressed: () async {
+                      await UserEditDialog.show(context, user);
+                      await MainUsersPage.getUsers(context);
+                    },
+                    icon: const Icon(Icons.edit),
+                    tooltip: '编辑',
+                  ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    iconSize: 20,
+                    onPressed: () async {
+                      final confirm = await ConfirmDialog.show(
+                          context, title: '确认删除',
+                          content: '确定要删除用户 "${user.username}" 吗？',
+                          confirmText: '删除');
+                      if (!confirm) return;
+                      if (await UserController.delete(user.id)) {
+                        await MainUsersPage.getUsers(context);
+                        return;
+                      }
+                      showErrorSnack(context, '删除失败');
+                    },
+                    icon: const Icon(Icons.delete),
+                    tooltip: '删除',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-    final rowColor = WidgetStateProperty.resolveWith<Color?>((
-        Set<WidgetState> states) {
-      if (index % 2 == 0) return Colors.grey.withOpacity(0.1);
-      return null;
-    });
+class UserEditDialog extends StatefulWidget {
+  final User user;
 
-    return DataRow(
-      color: rowColor,
-      cells: [
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: CopyableText(user.id.toString()))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: CopyableText(user.username))),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: CopyableText(user.email))),
-        DataCell(Icon(user.isAdmin ? Icons.check_circle : Icons.cancel,
-            color: user.isAdmin ? Colors.green : Colors.grey, size: 20)),
-        DataCell(Icon(user.isBanned ? Icons.check_circle : Icons.cancel,
-            color: user.isBanned ? Colors.red : Colors.grey, size: 20)),
-        DataCell(Padding(padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: CopyableText(
-                DateTime
-                    .fromMillisecondsSinceEpoch(user.createTime)
-                    .toString()))),
-        DataCell(SizedBox(width: 150, child: _UserDataRowTool())),
-      ],
+  const UserEditDialog({super.key, required this.user});
+
+  static Future<bool?> show(BuildContext context, User user) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          PopScope(canPop: false, child: UserEditDialog(user: user)),
     );
   }
 
   @override
-  bool get isRowCountApproximate => false;
-
-  @override
-  int get rowCount => users.length;
-
-  @override
-  int get selectedRowCount => 0;
+  State<UserEditDialog> createState() => _UserEditDialogState();
 }
 
-class _UserDataRowTool extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() => _UserDataRowToolState();
-}
+class _UserEditDialogState extends State<UserEditDialog> {
+  late final TextEditingController _usernameController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _emailController;
 
-class _UserDataRowToolState extends State<_UserDataRowTool> {
+  late bool _isAdmin;
+  late bool _isBanned;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _usernameController = TextEditingController(text: widget.user.username);
+    _passwordController = TextEditingController();
+    _emailController = TextEditingController(text: widget.user.email);
+
+    _isAdmin = widget.user.isAdmin;
+    _isBanned = widget.user.isBanned;
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        AsyncButton(type: .icon, child: Icon(Icons.delete_forever_rounded)),
-        AsyncButton(type: .icon, child: Icon(Icons.edit)),
+    return AlertDialog(
+      title: const Text('编辑用户'),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _usernameController,
+                decoration: const InputDecoration(labelText: '用户名'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                    labelText: '新密码（留空不修改）'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _emailController,
+                decoration: const InputDecoration(labelText: '邮箱'),
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('管理员'),
+                value: _isAdmin,
+                onChanged: (value) {
+                  setState(() {
+                    _isAdmin = value;
+                  });
+                },
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('封禁用户'),
+                value: _isBanned,
+                onChanged: (value) {
+                  setState(() {
+                    _isBanned = value;
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消')),
+        FilledButton(
+          onPressed: () async {
+            final user = User(
+              id: widget.user.id,
+              username: _usernameController.text,
+              password: _passwordController.text,
+              email: _emailController.text,
+              isAdmin: _isAdmin,
+              isBanned: _isBanned,
+              createTime: widget.user.createTime,
+            );
+            final result = await UserController.update(user);
+            if (result.$1 == 200) {
+              Navigator.of(context).pop();
+              return;
+            }
+            showErrorSnack(context, result.$2);
+          },
+          child: const Text('保存'),
+        ),
       ],
     );
   }

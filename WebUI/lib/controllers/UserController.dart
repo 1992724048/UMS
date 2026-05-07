@@ -13,31 +13,21 @@ class UserController {
     return false;
   }
 
-  static Future<bool> login(
-    String username,
-    String password,
-    String captcha,
-    String captchaToke,
-  ) async {
+  static Future<(int, String)> login(String username, String password,
+      String captcha, String captchaToke) async {
     try {
-      final req = await HttpClient.post(
-        '/api/User/login',
-        body: jsonEncode({
-          'username': username,
-          'password': password,
-          'captchaToken': captcha,
-          'captchaCode': captchaToke,
-        }),
-      );
-
+      final req = await HttpClient.post('/api/User/login', body: jsonEncode({
+        'username': username,
+        'password': password,
+        'captchaToken': captcha,
+        'captchaCode': captchaToke
+      }));
       if (req.status == 200) {
         final body = jsonDecode(req.responseText);
-        if (body['code'] == 200) {
-          return true;
-        }
+        return (body['code'] as int, body['message'] as String);
       }
     } catch (_) {}
-    return false;
+    return (-1, '请求失败');
   }
 
   static Future<bool> logout() async {
@@ -51,8 +41,7 @@ class UserController {
   static Future<UserPageResult?> listUsers(int page, int pageSize) async {
     try {
       final req = await HttpClient.get(
-        '/api/User/list_users?page=$page&pageSize=$pageSize',
-      );
+          '/api/User/list_users?page=$page&pageSize=$pageSize');
 
       if (req.status != 200) {
         return null;
@@ -68,5 +57,25 @@ class UserController {
     } catch (e) {
       return null;
     }
+  }
+
+  static Future<bool> delete(int uid) async {
+    try {
+      final req = await HttpClient.get('api/User/delete_user?id=$uid');
+      if (req.status == 200) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  static Future<(int, String)> update(User user) async {
+    try {
+      final req = await HttpClient.post(
+          'api/User/update_user', body: user.toJson());
+      if (req.status == 200) {
+        final body = jsonDecode(req.responseText);
+        return (body['code'] as int, body['message'] as String);
+      }
+    } catch (_) {}
+    return (-1, '请求失败');
   }
 }

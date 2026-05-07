@@ -34,7 +34,6 @@ dependencies:
   async: any
   web: any
   md_icons: any
-  data_table_2: any
   flutter_svg: any
   flutter_staggered_grid_view: any
   flutter_animate: any

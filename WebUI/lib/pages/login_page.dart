@@ -7,8 +7,6 @@ import 'package:web/web.dart' as web;
 import 'package:webui/controllers/CaptchaController.dart';
 import 'package:webui/controllers/UserController.dart';
 
-import '../utils/http.dart';
-import '../controllers/SystemController.dart';
 import '../widget/AsyncButton.dart';
 
 class LoginPage extends StatefulWidget {
@@ -58,11 +56,10 @@ class _LoginPageState extends State<LoginPage> {
       body: Row(
         crossAxisAlignment: .stretch,
         children: [
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.onSecondaryFixed,
-            ),
-          ),
+          Expanded(child: Container(color: Theme
+              .of(context)
+              .colorScheme
+              .onSecondaryFixed)),
           _LoginInput(),
         ],
       ),
@@ -137,14 +134,11 @@ class _LoginInputState extends State<_LoginInput> {
 
   Future<void> _login() async {
     final user = await UserController.login(
-      _usernameController.text,
-      _passwordController.text,
-      _captchaToken,
-      _captchaController.text,
-    );
+        _usernameController.text, _passwordController.text, _captchaToken,
+        _captchaController.text);
     if (!mounted) return;
 
-    if (user) {
+    if (user.$1 == 200) {
       if (await UserController.adminCheck()) {
         if (!mounted) return;
         context.go('/main');
@@ -152,7 +146,7 @@ class _LoginInputState extends State<_LoginInput> {
         setState(() => _errorMessage = '非管理员账户，无权限登录');
       }
     } else {
-      setState(() => _errorMessage = '登录失败');
+      setState(() => _errorMessage = user.$2);
     }
     _refreshCaptcha();
   }
@@ -170,9 +164,7 @@ class _LoginInputState extends State<_LoginInput> {
   Widget build(BuildContext context) {
     if (_isChecking) {
       return const SizedBox(
-        width: 400,
-        child: Center(child: CircularProgressIndicator()),
-      );
+          width: 400, child: Center(child: CircularProgressIndicator()));
     }
 
     return SizedBox(
@@ -192,24 +184,22 @@ class _LoginInputState extends State<_LoginInput> {
                 children: [
                   const Icon(Icons.admin_panel_settings, size: 32),
                   const SizedBox(width: 15),
-                  Text(
-                    '管理系统后台',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                    textAlign: TextAlign.center,
-                  ),
+                  Text('管理系统后台', style: Theme
+                      .of(context)
+                      .textTheme
+                      .headlineMedium, textAlign: TextAlign.center),
                 ],
               ),
               const SizedBox(height: 32),
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: '用户名',
-                  prefixIcon: Icon(Icons.person),
-                ),
+                decoration: const InputDecoration(border: OutlineInputBorder(),
+                    labelText: '用户名 (支持邮箱)',
+                    prefixIcon: Icon(Icons.person)),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return '请输入用户名';
-                  if (value!.length < 3) return '用户名至少 3 个字符';
+                  if (value!.length < 8) return '用户名至少 8 个字符';
+                  if (value.length > 16) return '用户名超过 16 个字符';
                   return null;
                 },
               ),
@@ -226,17 +216,15 @@ class _LoginInputState extends State<_LoginInput> {
                     child: IconButton(
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons
+                          .visibility),
                     ),
                   ),
                 ),
                 validator: (value) {
                   if (value?.isEmpty ?? true) return '请输入密码';
-                  if (value!.length < 3) return '密码至少 3 个字符';
+                  if (value!.length < 8) return '密码至少 8 个字符';
+                  if (value.length > 16) return '密码超过 16 个字符';
                   return null;
                 },
               ),
@@ -246,19 +234,12 @@ class _LoginInputState extends State<_LoginInput> {
                   Expanded(
                     child: TextFormField(
                       controller: _captchaController,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: '验证码',
-                        prefixIcon: const Icon(Icons.security),
-                      ),
+                      decoration: InputDecoration(border: OutlineInputBorder(),
+                          labelText: '验证码',
+                          prefixIcon: const Icon(Icons.security)),
                       maxLength: 4,
-                      buildCounter:
-                          (
-                            _, {
-                            required currentLength,
-                            required isFocused,
-                            maxLength,
-                          }) => null,
+                      buildCounter: (_,
+                          {required currentLength, required isFocused, maxLength}) => null,
                       onFieldSubmitted: (_) => _submit(),
                     ),
                   ),
@@ -266,13 +247,8 @@ class _LoginInputState extends State<_LoginInput> {
                   if (_captchaSvg.isNotEmpty)
                     GestureDetector(
                       onTap: _refreshCaptcha,
-                      child: Center(
-                        child: SvgPicture.string(
-                          _captchaSvg,
-                          width: 130,
-                          height: 48,
-                        ),
-                      ),
+                      child: Center(child: SvgPicture.string(
+                          _captchaSvg, width: 130, height: 48)),
                     ),
                 ],
               ),
@@ -289,9 +265,10 @@ class _LoginInputState extends State<_LoginInput> {
                   padding: const EdgeInsets.only(top: 16),
                   child: Text(
                     _errorMessage!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    style: TextStyle(color: Theme
+                        .of(context)
+                        .colorScheme
+                        .error),
                     textAlign: TextAlign.center,
                   ),
                 ),

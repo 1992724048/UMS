@@ -5,7 +5,6 @@ namespace WebAPI.Filters {
 
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
-    using WebAPI.Controllers;
     using WebAPI.Struct;
     using WebAPI.Utils;
 
@@ -20,13 +19,13 @@ namespace WebAPI.Filters {
                 return;
             }
 
-            Token<SessionEntry>? data = TokenList.find<SessionEntry>(token);
+            Token<long>? data = TokenList.find<long>(token);
             if (data?.Value == null) {
                 context.Result = new UnauthorizedResult();
                 return;
             }
 
-            User? user = User.find_with_id(data.Value.UserId);
+            User? user = User.find_with_id(data.Value);
             if (user is not { IsAdmin: true }) {
                 context.Result = new UnauthorizedResult();
             }
